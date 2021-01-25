@@ -75,7 +75,7 @@ echo "<td title='COM port of Autosampler Arduino.'>Autosampler port</td>";
 echo "<td><input type='text' value='$ASPort' name='ASPort' /></td>";
 echo "</tr>";
 
-echo "<tr><th colspan='2'>Automatic Integration</th></tr>";
+echo "<tr><th colspan='2'>Automatic Processing</th></tr>";
 // ACDFolder
 echo "<tr>";
 echo "<td title='Directory of the ACD NMR Processor.'>ACD folder</td>";
