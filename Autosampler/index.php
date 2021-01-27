@@ -409,33 +409,5 @@ foreach ($Parameters as $ColumnName) {
 	  <a href='methods.php'>configure processing methods</a> |
       <a href='resetShimming.php' target='debugFrame'>reset shimming</a>
     </div>
-	<h4>Suggestions, Bugs, Problems...? Please contact Marco Dyga (marco.dyga@rub.de)!</h4>
-    <div id="changelog">
-      <h4>Changelog:</h4>
-	  <ul>
-        <li>16.11.2020 - created a gui for Autosampler Satan</li>
-		<li>30.10.2020 - macro evaluation now runs parallel to autosampler</li>
-		<li>30.10.2020 - added predefined internal standards to methods</li>
-		<li>29.10.2020 - made methods user-specific; several bugfixes and performance improvements</li>
-		<li>29.10.2020 - added/fixed auto-increment of sample names</li>
-		<li>28.10.2020 - various bugfixes</li>
-		<li>28.10.2020 - added methods</li>
-		<li>15.09.2020 - fixed handling of small repetition times</li>
-		<li>15.09.2020 - fixed all remaining bugs in the bug list: blowing a sample into holder 32 will reset the queue instead of failing the measurement; ACD macro does not fail anymore when filename contains a dot; crashes of Spinsolve are now handled properly.</li>
-		<li>14.09.2020 - running measurements can now be aborted</li>
-		<li>14.09.2020 - changed communication from python to php from file to database - this should stop the status randomly change to "Autosampler is ready to use" in the middle of a measurement</li>
-		<li>03.09.2020 - calibration is no longer hardcoded, machine can be calibrated by people</li>
-		<li>17.07.2020 - added option to configure internal standards</li>
-		<li>16.07.2020 - fixed the "configuration" on the webinterface</li>
-		<li>16.07.2020 - progress of shims can now be displayed in the table</li>
-		<li>16.07.2020 - lots of bugfixes regarding timing issues</li>
-		<li>06.12.2019 - added the option to manually shim (CheckShim, QuickShim, or PowerShim) the spectrometer.</li>
-		<li>06.12.2019 - fixed a bug resulting in the autosampler not inserting the correct sample the next sample was deleted during a measurement.</li>
-	    <li>06.12.2019 - fixed a bug which lead to incorrect display of background colours in the table</li>
-		<li>02.05.2019 - the "new" version of the autosampler software (queue running as daemon group in python) has been implemented. Hopefully this is more stable than before. Make sure to start "Autosampler Satan" instead of the old communication script.</li>
-		<li>15.04.2019 - the autosampler doesn't do homing and tries to blow out to holder 32 anymore, when a sample has just been returned</li>
-        <li>12.04.2019 - added acceleration to the movement of the autosampler rotor</li>
-	  </ul>
-    </div>
   </body>
 </html>

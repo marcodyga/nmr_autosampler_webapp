@@ -74,6 +74,11 @@ function addInitialShim() {
         $NewSample = array($FirstID, $Date, "Queued", $SampleType);
         $statement = $pdo->prepare("INSERT INTO samples (ID, Holder, Date, Status, SampleType) VALUES (?,31,?,?,?)");
         $statement->execute($NewSample);
+    } else if($queued_samples == []) {
+        // No samples queued, user wants only to shim
+        $NewSample = array($Date, "Queued", $SampleType);
+        $statement = $pdo->prepare("INSERT INTO samples (Holder, Date, Status, SampleType) VALUES (31,?,?,?)");
+        $statement->execute($NewSample);
     }
 }
 
