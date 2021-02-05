@@ -25,14 +25,21 @@ foreach($pdo->query("SELECT name FROM nmr_standards ORDER BY ID ASC") as $name) 
 	array_push($Standards, $name[0]);
 }
 
+// get nuclei from DB
+$Nuclei = array();
+foreach($pdo->query("SELECT * FROM nuclei ORDER BY Mass ASC") as $nucleus) {
+    array_push($Nuclei, $nucleus);
+}
+
 // get methods from DB
 $Methods = array();
 $DefaultMethod = array();
 $DefaultMethod["ID"] = NULL;
 $DefaultMethod["User"] = 0;
 $DefaultMethod["Name"] = "None";
+$DefaultMethod["Nucleus"] = 0;
 array_push($Methods, $DefaultMethod);
-foreach($pdo->query("SELECT ID, User, Name FROM methods ORDER BY ID ASC") as $data) {
+foreach($pdo->query("SELECT ID, User, Name, Nucleus FROM methods ORDER BY ID ASC") as $data) {
 	array_push($Methods, $data);
 }
 

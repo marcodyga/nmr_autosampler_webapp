@@ -1,3 +1,12 @@
+<?php
+
+include("mysql_userdata.php");
+include("Samples_SQL.php");
+include("params.php");
+include("globals.php");
+$pdo = new PDO('mysql:host=' . MYSQL_HOST . ';dbname=autosampler', MYSQL_UNAME, MYSQL_PASSWD);
+
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -5,16 +14,6 @@
 <meta charset="utf-8" />
 <script type="text/javascript">
 var closeCountdown = 0;
-
-function checkFluorine() {
-    var protocol = document.getElementById("Protocol").value;
-    var method = document.getElementById("tr_Method");
-    if(protocol=="1D FLUORINE+") {
-        method.style.visibility = 'visible';
-    } else {
-        method.style.visibility = 'hidden';
-    }
-}
 
 function checkType() {
     var SampleType = document.getElementById("SampleType").value;
@@ -51,8 +50,6 @@ function checkType() {
         Number.setAttribute("required", "required");
         RepetitionTime.setAttribute("required", "required");
         Name.setAttribute("required", "required");
-        
-        checkFluorine();
     }
     if(SampleType == "Shimming") {
         tr_Holder.style.visibility = 'hidden';
@@ -73,19 +70,36 @@ function checkType() {
     }
 }
 
-function checkUserMethods() {
-	// only display methods of the user
+function checkMethods() {
+	// only display methods of the user and protocol
 	var selected_user = document.getElementById("User").value;
+    var selected_protocol = document.getElementById("Protocol").value;
 	Array.from(document.getElementById("select_Method").options).forEach(function(option_method) {
+        var display = false;
 		var method_user = option_method.getAttribute("data-user");
-		if(method_user != "0") {
-			if(selected_user == method_user) {
-				option_method.removeAttribute("hidden");
-			} else {
-				option_method.setAttribute("hidden", "hidden");	
-				option_method.selected = false;
-			}
-		}
+        var method_nucleus = option_method.getAttribute("data-nucleus");
+        if(method_user === "0" || selected_user == method_user) {
+            // ok user matches, OR method_user is 0 which is the "none" method
+            // could in the future be expanded to user- or nucleus-independent methods... 
+            // match "1D FLUORINE+" to 19, "1D PROTON+" to 1.
+            var selected_nucleus = 0;
+            if(selected_protocol == "1D FLUORINE+") {
+                selected_nucleus = 19;
+            } else if (selected_protocol == "1D PROTON+") {
+                selected_nucleus = 1;
+            }
+            if(method_nucleus === "0" || method_nucleus == selected_nucleus) {
+                // ok either the nucleus matches, or method_nucleus is 0 which is the "none" method
+                // so we can display, written with flag for more readable code
+                display = true;
+            }
+        }
+        if(display) {
+            option_method.removeAttribute("hidden");
+        } else {
+            option_method.setAttribute("hidden", "hidden");	
+            option_method.selected = false;
+        }
 	});
 }
 
@@ -122,14 +136,8 @@ select {
 }
 </style>
 </head>
-<body onload="checkFluorine(); checkType(); checkUserMethods(); adjustSize();" onmousemove="closeCountdown=0;">
+<body onload="checkType(); checkMethods(); adjustSize();" onmousemove="closeCountdown=0;">
 <?php
-
-include("mysql_userdata.php");
-include("Samples_SQL.php");
-include("params.php");
-include("globals.php");
-$pdo = new PDO('mysql:host=' . MYSQL_HOST . ';dbname=autosampler', MYSQL_UNAME, MYSQL_PASSWD);
 
 // Create new database entry for a new Sample.
 $sample = end($Samples);
@@ -175,15 +183,11 @@ if(isset($_POST['submit'])) {
 		$Protocol = $_POST['Protocol'];
 		$Number = $_POST['Number'];
 		$RepTime = $_POST['RepetitionTime'];
-		if($Protocol == "1D FLUORINE+") {
-			if($_POST['Method'] != '') {
-				$Method = $_POST['Method'];
-			} else {
-				$Method = NULL;
-			}
-		} else {
-			$Method = NULL;
-		}
+        if($_POST['Method'] != '') {
+            $Method = $_POST['Method'];
+        } else {
+            $Method = NULL;
+        }
 		$Standard = "";
 		$Eq = "";
 		$nF = "";
@@ -311,7 +315,7 @@ echo "</tr>";
 echo "<tr>";
 echo "<td>User</td>";
 echo "<td>";
-echo "<select id='User' name='User' required='required' onchange='checkUserMethods();'>";
+echo "<select id='User' name='User' required='required' onchange='checkMethods();'>";
 $StandardUser = False;
 foreach($pdo->query("SELECT * FROM users ORDER BY shortname ASC") as $User) {
 	echo "<option value='" . $User['ID'] . "'";
@@ -353,7 +357,7 @@ echo "</tr>";
 echo "<tr id='tr_Protocol'>";
 echo "<td>Protocol</td>";
 echo "<td>";
-echo "<select id='Protocol' name='Protocol' required='required' onchange='checkFluorine();'>";
+echo "<select id='Protocol' name='Protocol' required='required' onchange='checkMethods();'>";
 echo "<option disabled='disabled'";
 if($sample==[]) {
     echo " selected='selected'";
@@ -414,7 +418,7 @@ echo "</select>";
 echo "</td>";
 echo "</tr>";
 
-// Method (only F NMR)
+// Method 
 echo "<tr id='tr_Method'>";
 echo "<td>Processing Method</td>";
 echo "<td>";
@@ -426,11 +430,12 @@ foreach($ParamData["Methods"] as $Method) {
             echo " selected='selected'";
         }
     } else {
-        if($Method["ID"] == $sample["Method"] and $sample['Protocol'] == "1D FLUORINE+") {
+        if($Method["ID"] == $sample["Method"]) {
             echo " selected='selected'";
         }
     }
 	echo " data-user='" . $Method["User"] . "'";
+    echo " data-nucleus='" . $Method["Nucleus"] . "'";
     echo ">" . $Method["Name"] . "</option>";
 }
 echo "</select>";
