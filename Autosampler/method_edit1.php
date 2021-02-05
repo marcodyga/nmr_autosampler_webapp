@@ -360,7 +360,7 @@ if($invalid) {
 		echo "<form action='' method='post'><tr><td colspan='7' style='text-align:right;'>load preconfigured standard: ";
 		echo "<input type='text' value='1.0' size='4' maxlength='8' name='Eq'/> equiv. of ";
 		echo "<select name='standard_from_db'>";
-		foreach($pdo->query("SELECT ID,name,shift FROM nmr_standards ORDER BY shift ASC") as $std_from_db) {
+		foreach($pdo->query("SELECT ID,name,shift FROM nmr_standards WHERE nucleus = " . $Nucleus . " ORDER BY shift ASC") as $std_from_db) {
 			echo "<option value='" . $std_from_db['ID'] . "'>";
 			echo $std_from_db['name'] . " @ " . number_format($std_from_db['shift'], 1) . " ppm";
 			echo "</option>";
