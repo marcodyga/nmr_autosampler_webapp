@@ -21,7 +21,7 @@ foreach($UserData as $user) {
 
 // get standards from DB
 $Standards = array("");
-foreach($pdo->query("SELECT name FROM fnmr_standards ORDER BY ID ASC") as $name) {
+foreach($pdo->query("SELECT name FROM nmr_standards ORDER BY ID ASC") as $name) {
 	array_push($Standards, $name[0]);
 }
 

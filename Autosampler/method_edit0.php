@@ -35,6 +35,7 @@ $method = Array();
 $method["ID"] = -1;
 $method["User"] = NULL;
 $method["Name"] = "New Method";
+$method["Nucleus"] = 19;
 $method["LB"] = 1.0;
 $method["BaseLine"] = "SpAveraging";
 $method["BoxHalfWidth"] = 50;
@@ -71,6 +72,17 @@ if($StandardUser == False) {
 echo "</td></tr>";
 echo "<tr><td>Name</td><td>";
 echo "<input type='text' maxlength='100' name='Name' value='$method[Name]'/>";
+echo "</td></tr>";
+echo "<tr><td>Nucleus</td><td>";
+echo "<select id='Nucleus' name='Nucleus' required='required'>";
+foreach($pdo->query("SELECT Mass, FriendlyName FROM nuclei ORDER BY Mass ASC") as $nucleus) {
+    echo "<option value='" . $nucleus["Mass"] . "'";
+    if ($method["Nucleus"] == $nucleus["Mass"]) {
+        echo " selected='selected'";
+    }
+    echo ">" . $nucleus["FriendlyName"] . "</option>";
+}
+echo "</select>";
 echo "</td></tr>";
 echo "<tr><td>LB [Hz]</td><td>";
 $lb_display_value = strval($method['LB']);

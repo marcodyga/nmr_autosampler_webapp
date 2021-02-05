@@ -57,6 +57,12 @@ if(isset($_POST['methodID'])) {
             echo "<p>Method must have a name.</p>";
             $invalid = true;
         }
+        if(isset($_POST["Nucleus"]) and $_POST["Nucleus"] != "") {
+            $Nucleus = $_POST["Nucleus"];
+        } else {
+            echo "<p>Nucleus must be set.</p>";
+            $invalid = true;
+        }
 		if(isset($_POST['BaseLine']) and $_POST["BaseLine"] != "") {
 			$BaseLine = $_POST["BaseLine"];
 			if($BaseLine == "SpAveraging") {
@@ -82,12 +88,12 @@ if(isset($_POST['methodID'])) {
         if(!$invalid) {
             if($_POST["methodID"] == "-1") {
                 // new method, needs an ID first
-                $stmt = $pdo->prepare("INSERT INTO methods (User, LB, Name, BaseLine, BoxHalfWidth, NoiseFactor) VALUES (?,?,?,?,?,?)");
+                $stmt = $pdo->prepare("INSERT INTO methods (User, LB, Name, Nucleus, BaseLine, BoxHalfWidth, NoiseFactor) VALUES (?,?,?,?,?,?,?)");
             } else {
                 // update existing method
-                $stmt = $pdo->prepare("UPDATE methods SET User=?, LB=?, Name=?, BaseLine=?, BoxHalfWidth=?, NoiseFactor=? WHERE ID = " . $_POST['methodID']);
+                $stmt = $pdo->prepare("UPDATE methods SET User=?, LB=?, Name=?, Nucleus=?, BaseLine=?, BoxHalfWidth=?, NoiseFactor=? WHERE ID = " . $_POST['methodID']);
             }
-            $stmt->execute([$User, $LB, $Name, $BaseLine, $BoxHalfWidth, $NoiseFactor]);
+            $stmt->execute([$User, $LB, $Name, $Nucleus, $BaseLine, $BoxHalfWidth, $NoiseFactor]);
             if($_POST["methodID"] == "-1") {
                 $methodID = $pdo->lastInsertId();
             } else {
@@ -124,7 +130,7 @@ if(isset($_POST['methodID'])) {
                     // nF
                     $nF = check_digit_value("nF");
                     if($nF === false) {
-                        echo "<p>Number of fluorine atoms must be a whole, positive number.</p>";
+                        echo "<p>Number of atoms must be a whole, positive number.</p>";
                         $invalid = true;
                     }
                     // Begin ppm
@@ -192,14 +198,14 @@ if(isset($_POST['methodID'])) {
 					$invalid = true;
 				}
 				if(!$invalid) {
-					$std_from_db = $pdo->query("SELECT * FROM fnmr_standards WHERE ID = " . $std_from_db_id . " LIMIT 1")->fetch();
+					$std_from_db = $pdo->query("SELECT * FROM nmr_standards WHERE ID = " . $std_from_db_id . " LIMIT 1")->fetch();
 					$begin_ppm = $std_from_db['shift'] - ($std_from_db['peakwidth_ppm'] / 2);
 					$end_ppm = $std_from_db['shift'] + ($std_from_db['peakwidth_ppm'] / 2);
 					$reference_ppm = $std_from_db['shift'];
 					$reference_tolerance = 5; // put a sensible default value here.
 					$annotation = substr($std_from_db['name'], 0, 20); // maximum 20 characters
 					$stmt = $pdo->prepare("INSERT INTO peaks (role, method, Eq, nF, begin_ppm, end_ppm, reference_ppm, reference_tolerance, annotation) VALUES (0,?,?,?,?,?,?,?,?)");
-                    $stmt->execute([$methodID, $Eq, $std_from_db['fluorine_atoms'], $begin_ppm, $end_ppm, $reference_ppm, $reference_tolerance, $annotation]);
+                    $stmt->execute([$methodID, $Eq, $std_from_db['number_of_atoms'], $begin_ppm, $end_ppm, $reference_ppm, $reference_tolerance, $annotation]);
 				}
 			}
         }
@@ -338,7 +344,7 @@ if($invalid) {
     // INTERNAL STANDARD
     $new_peak["role"] = 0;
     echo "<tr><th colspan='8' style='padding-top:10px'>Internal Standard</th></tr>";
-    echo "<tr><th>Equiv.</th><th>Number of F atoms</th><th>Begin [ppm]</th><th>End [ppm]</th><th>Reference value [ppm]</th><th>Annotation</th><th colspan='2'>edit</th></tr>";
+    echo "<tr><th>Equiv.</th><th>Number of atoms</th><th>Begin [ppm]</th><th>End [ppm]</th><th>Reference value [ppm]</th><th>Annotation</th><th colspan='2'>edit</th></tr>";
     $any_int_stand = false;
     foreach($pdo->query("SELECT * FROM peaks WHERE role = 0 AND method = $methodID ORDER BY ID ASC") as $peak) {
         if($edit == $peak['ID']) {
@@ -354,7 +360,7 @@ if($invalid) {
 		echo "<form action='' method='post'><tr><td colspan='7' style='text-align:right;'>load preconfigured standard: ";
 		echo "<input type='text' value='1.0' size='4' maxlength='8' name='Eq'/> equiv. of ";
 		echo "<select name='standard_from_db'>";
-		foreach($pdo->query("SELECT ID,name,shift FROM fnmr_standards ORDER BY shift ASC") as $std_from_db) {
+		foreach($pdo->query("SELECT ID,name,shift FROM nmr_standards ORDER BY shift ASC") as $std_from_db) {
 			echo "<option value='" . $std_from_db['ID'] . "'>";
 			echo $std_from_db['name'] . " @ " . number_format($std_from_db['shift'], 1) . " ppm";
 			echo "</option>";
@@ -368,7 +374,7 @@ if($invalid) {
     // STARTING MATERIALS
     $new_peak["role"] = 1;
     echo "<tr><th colspan='8' style='padding-top:10px'>Starting Materials</th></tr>";
-    echo "<tr><th>Equiv.</th><th>Number of F atoms</th><th>Begin [ppm]</th><th>End [ppm]</th><th colspan='2'>Annotation</th><th colspan='2'>edit</th></tr>";
+    echo "<tr><th>Equiv.</th><th>Number of atoms</th><th>Begin [ppm]</th><th>End [ppm]</th><th colspan='2'>Annotation</th><th colspan='2'>edit</th></tr>";
     foreach($pdo->query("SELECT * FROM peaks WHERE role = 1 AND method = $methodID ORDER BY ID ASC") as $peak) {
         if($edit == $peak['ID']) {
             create_row_writable($peak, $methodID);
@@ -381,7 +387,7 @@ if($invalid) {
     // PRODUCTS
     $new_peak["role"] = 2;
     echo "<tr><th colspan='8' style='padding-top:10px'>Products</th></tr>";
-    echo "<tr><th>Equiv.</th><th>Number of F atoms</th><th>Begin [ppm]</th><th>End [ppm]</th><th colspan='2'>Annotation</th><th colspan='2'>edit</th></tr>";
+    echo "<tr><th>Equiv.</th><th>Number of atoms</th><th>Begin [ppm]</th><th>End [ppm]</th><th colspan='2'>Annotation</th><th colspan='2'>edit</th></tr>";
     foreach($pdo->query("SELECT * FROM peaks WHERE role = 2 AND method = $methodID ORDER BY ID ASC") as $peak) {
         if($edit == $peak['ID']) {
             create_row_writable($peak, $methodID);

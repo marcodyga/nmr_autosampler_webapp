@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.0.2
+-- version 5.0.3
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Erstellungszeit: 06. Jan 2021 um 15:59
--- Server-Version: 10.4.13-MariaDB
--- PHP-Version: 7.4.7
+-- Erstellungszeit: 05. Feb 2021 um 16:12
+-- Server-Version: 10.4.14-MariaDB
+-- PHP-Version: 7.4.11
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -63,43 +63,65 @@ INSERT INTO `config` (`NMRFolder`, `NMRIP`, `NMRPort`, `ASPort`, `ACDFolder`) VA
 -- --------------------------------------------------------
 
 --
--- Tabellenstruktur für Tabelle `fnmr_standards`
---
-
-CREATE TABLE `fnmr_standards` (
-  `ID` int(11) NOT NULL,
-  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `shift` double NOT NULL,
-  `fluorine_atoms` int(11) NOT NULL,
-  `peakwidth_ppm` float NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Daten für Tabelle `fnmr_standards`
---
-
-INSERT INTO `fnmr_standards` (`ID`, `name`, `shift`, `fluorine_atoms`, `peakwidth_ppm`) VALUES
-(1, 'Trifluorotoluene', -63.9, 3, 1),
-(2, '2,2,2-Trifluoroethanol', -77.56, 3, 1),
-(3, '1,4-Difluorobenzene', -119.9, 2, 1),
-(4, 'CFCl3', 0, 1, 1),
-(5, '(Trifluoromethoxy)benzene', -57.4, 3, 0.8);
-
--- --------------------------------------------------------
-
---
 -- Tabellenstruktur für Tabelle `methods`
 --
 
 CREATE TABLE `methods` (
   `ID` int(11) NOT NULL,
   `User` int(11) DEFAULT NULL,
+  `Nucleus` int(11) NOT NULL DEFAULT 19,
   `LB` float NOT NULL COMMENT 'line broadening',
   `Name` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
   `BaseLine` varchar(32) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'SpAveraging',
   `BoxHalfWidth` int(11) NOT NULL DEFAULT 50,
   `NoiseFactor` int(11) NOT NULL DEFAULT 3
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Tabellenstruktur für Tabelle `nmr_standards`
+--
+
+CREATE TABLE `nmr_standards` (
+  `ID` int(11) NOT NULL,
+  `nucleus` int(11) NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `shift` double NOT NULL,
+  `number_of_atoms` int(11) NOT NULL,
+  `peakwidth_ppm` float NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Daten für Tabelle `nmr_standards`
+--
+
+INSERT INTO `nmr_standards` (`ID`, `nucleus`, `name`, `shift`, `number_of_atoms`, `peakwidth_ppm`) VALUES
+(1, 19, 'Trifluorotoluene', -63.9, 3, 1),
+(2, 19, '2,2,2-Trifluoroethanol', -77.56, 3, 1),
+(3, 19, '1,4-Difluorobenzene', -119.9, 2, 1),
+(4, 19, 'CFCl3', 0, 1, 1),
+(5, 19, '(Trifluoromethoxy)benzene', -57.4, 3, 0.8),
+(9, 1, 'Tetramethylsilane', 0, 12, 0.1);
+
+-- --------------------------------------------------------
+
+--
+-- Tabellenstruktur für Tabelle `nuclei`
+--
+
+CREATE TABLE `nuclei` (
+  `Mass` int(11) NOT NULL,
+  `FriendlyName` varchar(8) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Daten für Tabelle `nuclei`
+--
+
+INSERT INTO `nuclei` (`Mass`, `FriendlyName`) VALUES
+(1, '1H'),
+(19, '19F');
 
 -- --------------------------------------------------------
 
@@ -200,17 +222,25 @@ CREATE TABLE `users` (
 --
 
 --
--- Indizes für die Tabelle `fnmr_standards`
---
-ALTER TABLE `fnmr_standards`
-  ADD PRIMARY KEY (`ID`);
-
---
 -- Indizes für die Tabelle `methods`
 --
 ALTER TABLE `methods`
   ADD PRIMARY KEY (`ID`),
-  ADD KEY `User` (`User`);
+  ADD KEY `User` (`User`),
+  ADD KEY `Nucleus` (`Nucleus`);
+
+--
+-- Indizes für die Tabelle `nmr_standards`
+--
+ALTER TABLE `nmr_standards`
+  ADD PRIMARY KEY (`ID`),
+  ADD KEY `nucleus` (`nucleus`);
+
+--
+-- Indizes für die Tabelle `nuclei`
+--
+ALTER TABLE `nuclei`
+  ADD PRIMARY KEY (`Mass`);
 
 --
 -- Indizes für die Tabelle `peaks`
@@ -238,16 +268,16 @@ ALTER TABLE `users`
 --
 
 --
--- AUTO_INCREMENT für Tabelle `fnmr_standards`
---
-ALTER TABLE `fnmr_standards`
-  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
-
---
 -- AUTO_INCREMENT für Tabelle `methods`
 --
 ALTER TABLE `methods`
-  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+
+--
+-- AUTO_INCREMENT für Tabelle `nmr_standards`
+--
+ALTER TABLE `nmr_standards`
+  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT für Tabelle `peaks`
@@ -265,7 +295,7 @@ ALTER TABLE `samples`
 -- AUTO_INCREMENT für Tabelle `users`
 --
 ALTER TABLE `users`
-  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
 
 --
 -- Constraints der exportierten Tabellen
@@ -275,7 +305,14 @@ ALTER TABLE `users`
 -- Constraints der Tabelle `methods`
 --
 ALTER TABLE `methods`
-  ADD CONSTRAINT `methods_ibfk_1` FOREIGN KEY (`User`) REFERENCES `users` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `methods_ibfk_1` FOREIGN KEY (`User`) REFERENCES `users` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `methods_ibfk_2` FOREIGN KEY (`Nucleus`) REFERENCES `nuclei` (`Mass`);
+
+--
+-- Constraints der Tabelle `nmr_standards`
+--
+ALTER TABLE `nmr_standards`
+  ADD CONSTRAINT `nmr_standards_ibfk_1` FOREIGN KEY (`nucleus`) REFERENCES `nuclei` (`Mass`);
 
 --
 -- Constraints der Tabelle `peaks`

@@ -405,7 +405,7 @@ foreach ($Parameters as $ColumnName) {
       <!--<a href='javascript:showStatus();'>show/hide status information</a> | -->
       <a href='users.php'>manage user data</a> | 
       <a href='config.php'>configure autosampler</a> |
-	  <a href='fnmr_standards.php'>configure internal standards</a> |
+	  <a href='nmr_standards.php'>configure internal standards</a> |
 	  <a href='methods.php'>configure processing methods</a> |
       <a href='resetShimming.php' target='debugFrame'>reset shimming</a>
     </div>
