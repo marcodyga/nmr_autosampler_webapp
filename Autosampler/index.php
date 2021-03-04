@@ -241,10 +241,10 @@ foreach($UserData as $user) {
         output += "Autosampler reports measurement is running!";
         bgcolor = "#ffff00";
     } else if(ASStatus == 4) {
-        output += "Error: Pusher did not properly open, please check if a NMR tube is stuck the device!";
+        output += "Error: Slider did not properly open, please check if a NMR tube is stuck the device!";
         bgcolor = "#ff3a3a";
     } else if(ASStatus == 5) {
-        output += "Error: Pusher did not properly close, please check if a NMR tube is stuck the device!";
+        output += "Error: Slider did not properly close, please check if a NMR tube is stuck the device!";
         bgcolor = "#ff3a3a";
     } else if(ASStatus == 6) {
         output += "Error: A NMR tube was detected inside of the spectrometer before starting the queue. Please remove it from Holder 32.";
