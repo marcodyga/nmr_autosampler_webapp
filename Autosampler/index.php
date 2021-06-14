@@ -374,7 +374,7 @@ foreach ($Parameters as $ColumnName) {
            
               </form>
             </td>
-            <td colspan='5' id='ASStatusTD' style="text-align:center">
+            <td colspan='6' id='ASStatusTD' style="text-align:center">
               
             </td>
             <td style='text-align:center' colspan='4'>
