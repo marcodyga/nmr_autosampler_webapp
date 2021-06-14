@@ -6,7 +6,7 @@
     <script type="text/javascript">
 
 // This is a list of all columns of the Autosampler table (Database Field Names!).
-var allColumns = ["ID", "Holder", "User", "Solvent", "Protocol", "Number", "RepTime", "Method", "Name", "Date", "Status", "Progress", "Result"];
+var allColumns = ["ID", "Holder", "User", "Solvent", "Protocol", "Number", "RepTime", "Method", "Name", "Date", "StartDate", "Status", "Progress", "Result"];
 
 function Seitenende() {
   document.getElementById('seitenende').scrollIntoView(true);

@@ -25,6 +25,7 @@ function checkType() {
     var tr_RepTime = document.getElementById("tr_RepTime");
     var tr_Method = document.getElementById("tr_Method");
     var tr_ShimType = document.getElementById("tr_ShimType");
+    var tr_StartDate = document.getElementById("tr_StartDate");
     var tr_Name = document.getElementById("tr_Name");
     
     var Holder = document.getElementById("Holder");
@@ -41,6 +42,7 @@ function checkType() {
         tr_NoS.style.visibility = 'visible';
         tr_RepTime.style.visibility = 'visible';
         tr_Method.style.visibility = 'visible';
+        tr_StartDate.style.visibility = 'visible';
         tr_ShimType.style.visibility = 'hidden';
         tr_Name.style.visibility = 'visible';
         
@@ -59,6 +61,7 @@ function checkType() {
         tr_RepTime.style.visibility = 'hidden';
         tr_Method.style.visibility = 'hidden';
         tr_ShimType.style.visibility = 'visible';
+        tr_StartDate.style.visibility = 'visible';
         tr_Name.style.visibility = 'hidden';
         
         Holder.removeAttribute("required");
@@ -105,7 +108,7 @@ function checkMethods() {
 
 function adjustSize() {
     var frame = window.parent.document.getElementById("addSampleFrame");
-    frame.width = "350px";
+    frame.width = "400px";
     frame.height = (frame.contentWindow.document.body.scrollHeight+20) + "px";
     frame.style.visibility = 'visible';
 }
@@ -145,6 +148,16 @@ reset($Samples);
 if(isset($_POST['submit'])) {
 	$message = "";
 	$invalid = false;
+    if(isset($_POST['User'])) {
+		$User=intval($_POST['User']);
+    } else {
+        $invalid = true;
+        $message .= "Please select a user.";
+    }
+    $StartDate = date_create_from_format("Y-m-d H:i:s", $_POST['StartDateDate'] . $_POST['StartDateTime']) or $StartDate = NULL;
+    if($StartDate !== NULL) {
+        $StartDate = $StartDate->getTimestamp();
+    }
 	$SampleType=$_POST['SampleType'];
 	if($SampleType == "Shimming") {
 		$SampleType = $_POST['ShimType'];
@@ -179,8 +192,18 @@ if(isset($_POST['submit'])) {
 			$invalid = true;
 			$message .= "<p>A sample with the name \"" . $Name . "\" already exists!</p>";
 		}
-		$Solvent = $_POST['Solvent'];
-		$Protocol = $_POST['Protocol'];
+        if(isset($_POST['Solvent'])) {
+            $Solvent = $_POST['Solvent'];
+        } else {
+            $invalid = true;
+            $message .= "<p>Please select a solvent.</p>";
+        }
+        if(isset($_POST['Protocol'])) {
+            $Protocol = $_POST['Protocol'];
+        } else {
+            $invalid = true;
+            $message .= "<p>Please select a protocol.</p>";
+        }
 		$Number = $_POST['Number'];
 		$RepTime = $_POST['RepetitionTime'];
         if($_POST['Method'] != '') {
@@ -197,10 +220,9 @@ if(isset($_POST['submit'])) {
 		$message .= "</body></html>";
 		die($message);
 	} else {
-		$User=intval($_POST['User']);
 		$LastID=$_POST['LastID'];
 		$Date=time();
-		$NewSample = array($LastID, $Holder, $User, $Name, $Solvent, $Protocol, $Number, $RepTime, $Method, $Standard, $Eq, $nF, $Date, "Queued", $SampleType);
+		$NewSample = array($LastID, $Holder, $User, $Name, $Solvent, $Protocol, $Number, $RepTime, $Method, $Standard, $Eq, $nF, $Date, "Queued", $SampleType, $StartDate);
 		if ($sample and $LastID <= $sample['ID']) {
 			foreach(array_reverse($Samples) as $sample) {
 				if ($sample['ID'] >= $LastID) {
@@ -209,7 +231,7 @@ if(isset($_POST['submit'])) {
 				}
 			}
 		}
-		$statement = $pdo->prepare("INSERT INTO samples (ID, Holder, User, Name, Solvent, Protocol, Number, RepTime, Method, Standard, Eq, nF, Date, Status, SampleType) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+		$statement = $pdo->prepare("INSERT INTO samples (ID, Holder, User, Name, Solvent, Protocol, Number, RepTime, Method, Standard, Eq, nF, Date, Status, SampleType, StartDate) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 		$statement->execute($NewSample);
 		$message = "Sample $Name (#$LastID) has been added to the Queue. ";
 	}
@@ -451,6 +473,15 @@ echo "<option value='CheckShim'>CheckShim</option>";
 echo "<option value='QuickShim'>QuickShim</option>";
 echo "<option value='PowerShim'>PowerShim</option>";
 echo "</select>";
+echo "</td>";
+echo "</tr>";
+
+// StartDate
+echo "<tr id='tr_StartDate'>";
+echo "<td>Start&nbsp;Date&nbsp;&&nbsp;Time</td>";
+echo "<td>";
+echo "<input type='date' id='StartDateDate' name='StartDateDate' />";
+echo "<input type='time' id='StartDateTime' name='StartDateTime' step='1'/>";
 echo "</td>";
 echo "</tr>";
 

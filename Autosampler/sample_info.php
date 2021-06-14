@@ -19,7 +19,7 @@ foreach($Samples as $sample) {
         if(is_numeric($key) == false) {
             echo "    <$key>";
             if($attr) {
-                if($key == "Date") {
+                if($key == "Date" or $key == "StartDate") {
                     echo date("d.m.Y H:i:s", $attr);
                 } elseif($key == "Progress") {
                     echo $attr . " %";

@@ -47,7 +47,7 @@ foreach($pdo->query("SELECT ID, User, Name, Nucleus FROM methods ORDER BY ID ASC
 //available in the magritek software (pay attention to correct spelling!); new solvents/protocols can simply be appended 
 //at the end of the array as they are sorted into alphabetic order afterwards anyway; 
 //$NumberOfHolders is the number of usable holders in the autosampler.
-$Parameters = array("#", "Holder", "User", "Solvent", "Protocol", "Scans", "Repetition Time", "Processing Method", "Sample Name", "Submitted", "Status", "Progress", "Result");
+$Parameters = array("#", "Holder", "User", "Solvent", "Protocol", "Scans", "Repetition Time", "Processing Method", "Sample Name", "Submitted", "Start Date", "Status", "Progress", "Result");
 $Solvents = array("None","Acetone","Acetonitrile","Benzene","Chloroform","Cyclohexane","DMSO","Ethanol","Methanol","Pyridine","TMS","THF","Toluene","TFA","Water","Other");
 $Protocols = array("1D PROTON+", "1D FLUORINE+");
 $NumberOfScans=array();
