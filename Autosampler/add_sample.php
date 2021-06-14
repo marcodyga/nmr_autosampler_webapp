@@ -154,8 +154,11 @@ if(isset($_POST['submit'])) {
         $invalid = true;
         $message .= "Please select a user.";
     }
-    $StartDate = date_create_from_format("Y-m-d H:i:s", $_POST['StartDateDate'] . $_POST['StartDateTime']) or $StartDate = NULL;
-    if($StartDate !== NULL) {
+	// to catch the error in the qt browser where seconds are ignored if they are xx:xx:00
+    $StartDate = date_create_from_format("Y-m-d H:i", $_POST['StartDateDate'] . " " . $_POST['StartDateTime'])
+		or $StartDate = date_create_from_format("Y-m-d H:i:s", $_POST['StartDateDate'] . " " . $_POST['StartDateTime'])
+		or $StartDate = NULL;
+	if($StartDate !== NULL) {
         $StartDate = $StartDate->getTimestamp();
     }
 	$SampleType=$_POST['SampleType'];
