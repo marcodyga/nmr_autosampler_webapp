@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Erstellungszeit: 05. Feb 2021 um 16:12
+-- Erstellungszeit: 14. Jun 2021 um 14:21
 -- Server-Version: 10.4.14-MariaDB
 -- PHP-Version: 7.4.11
 
@@ -182,7 +182,8 @@ CREATE TABLE `samples` (
   `Progress` int(11) DEFAULT NULL,
   `SampleType` varchar(32) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT 'Sample',
   `Method` int(11) DEFAULT NULL,
-  `Result` varchar(255) NOT NULL DEFAULT ''
+  `Result` varchar(255) NOT NULL DEFAULT '',
+  `StartDate` bigint(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
