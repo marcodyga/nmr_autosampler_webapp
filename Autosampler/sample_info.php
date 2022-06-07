@@ -31,6 +31,10 @@ foreach($Samples as $sample) {
                     $stmt = $pdo->query("SELECT shortname FROM users WHERE ID = $attr");
                     $user = $stmt->fetch();
                     echo $user["shortname"];
+				} elseif ($key == "Protocol") {
+					$stmt = $pdo->query("SELECT name FROM protocols WHERE protocolid = $attr");
+                    $protocol = $stmt->fetch();
+                    echo $protocol["name"];
 				} else {
                     echo $attr;
                 }
@@ -40,7 +44,31 @@ foreach($Samples as $sample) {
             echo "</$key>\n";
         }
     }
-    echo "  </sample>\n";
+	# properties
+	echo "    <sampleProperties>\n";
+	foreach($pdo->query("SELECT sample_properties.samplepropid, sample_properties.propid, protocol_properties.friendlyName, sample_properties.strvalue FROM sample_properties INNER JOIN protocol_properties ON sample_properties.propid=protocol_properties.propid WHERE sample_properties.sampleid=" . $sample["ID"]) as $prop) {
+		echo "      <property>\n";
+		echo "        ";
+		echo "<samplepropid>";
+		echo $prop["samplepropid"];
+		echo "</samplepropid>";
+		echo "\n        ";
+		echo "<propid>";
+		echo $prop["propid"];
+		echo "</propid>";
+		echo "\n        ";
+		echo "<friendlyName>";
+		echo $prop["friendlyName"];
+		echo "</friendlyName>";
+		echo "\n        ";
+		echo "<strvalue>";
+		echo $prop["strvalue"];
+		echo "</strvalue>";
+		echo "\n";
+		echo "      </property>\n";
+	}
+	echo "    </sampleProperties>\n";
+	echo "  </sample>\n";
 }
 echo "  <Shimming>$Shimming</Shimming>\n";
 echo "  <LastShim>$LastShim</LastShim>\n";

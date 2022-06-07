@@ -15,7 +15,6 @@ function cancel() {
 <?php
 
 include("mysql_userdata.php");
-include("Samples_SQL.php");
 include("params.php");
 include("globals.php");
 $pdo = new PDO('mysql:host=' . MYSQL_HOST . ';dbname=autosampler', MYSQL_UNAME, MYSQL_PASSWD);
@@ -40,7 +39,7 @@ if(isset($_POST['add_to_db']) and $_POST['add_to_db'] == "1") {
         //$invalid = true;
     }
     if(!$invalid) {
-        if(isset($_POST['id'])) {
+        if(isset($_POST['id']) && is_numeric($_POST['id'])) {
             // update existing user
             $stmt = $pdo->prepare("UPDATE users SET shortname=?, fullname=?, email=? WHERE id = " . $_POST['id']);
         } else {
@@ -54,7 +53,7 @@ if(isset($_POST['add_to_db']) and $_POST['add_to_db'] == "1") {
 }
 
 // remove user
-if(isset($_POST['remove'])) {
+if(isset($_POST['remove']) && is_numeric($_POST['remove'])) {
     $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
     $stmt->execute([$_POST['remove']]);
 }

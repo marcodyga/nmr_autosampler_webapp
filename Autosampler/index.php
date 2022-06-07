@@ -5,15 +5,12 @@
     <meta charset="utf-8" />
     <script type="text/javascript">
 
-// This is a list of all columns of the Autosampler table (Database Field Names!).
-var allColumns = ["ID", "Holder", "User", "Solvent", "Protocol", "Number", "RepTime", "Method", "Name", "Date", "StartDate", "Status", "Progress", "Result"];
+// This is a list of all columns of the Autosampler table (Database Field Names + Properties).
+// Properties get special handling when rendered in info();
+var allColumns = ["ID", "Holder", "User", "Solvent", "Protocol", "Properties", "Method", "Name", "Date", "StartDate", "Status", "Progress", "Result"];
 
 function Seitenende() {
   document.getElementById('seitenende').scrollIntoView(true);
-}
-
-function openWin() {
-    window.document.getElementById("debugFrame").src="sendXML.php";
 }
 
 function refresh() {
@@ -59,11 +56,28 @@ function info(xmlDoc) {
         }
         // Now refresh this sample
         allColumns.forEach(function(entry) {
-            var newValue = xmlDoc.getElementsByTagName(entry)[i].childNodes[0].nodeValue;
-            var innerHTML = document.getElementById(entry+thisID).innerHTML;
-            if(innerHTML != newValue) {
-                document.getElementById(entry+thisID).innerHTML = newValue;
-            }
+			var newValue;
+			if (entry == "Properties") {
+				// render properties
+				newValue = "";
+				var properties = xmlDoc.getElementsByTagName("sampleProperties")[i].getElementsByTagName("property");
+				for (var prop of properties) {
+					var name = prop.getElementsByTagName("friendlyName")[0].innerHTML;
+					var val = prop.getElementsByTagName("strvalue")[0].innerHTML;
+					if (newValue != "") {
+						newValue += "; ";
+					}
+					newValue += "<i>" + name + "</i>:&nbsp;" + val;
+				}
+				newValue += ".";
+			} else {
+				// for all other columns, directly put the value into the html
+				newValue = xmlDoc.getElementsByTagName(entry)[i].childNodes[0].nodeValue;
+			}
+			var innerHTML = document.getElementById(entry+thisID).innerHTML;
+			if(innerHTML != newValue) {
+				document.getElementById(entry+thisID).innerHTML = newValue;
+			}
         });
         if(xmlDoc.getElementsByTagName("SampleType")[i].childNodes[0].nodeValue != "Sample") {
             // If it's a shimming, display the Shim Type in the "Protocol" column.
@@ -374,7 +388,7 @@ foreach ($Parameters as $ColumnName) {
            
               </form>
             </td>
-            <td colspan='6' id='ASStatusTD' style="text-align:center">
+            <td colspan='5' id='ASStatusTD' style="text-align:center">
               
             </td>
             <td style='text-align:center' colspan='4'>
@@ -405,6 +419,7 @@ foreach ($Parameters as $ColumnName) {
       <!--<a href='javascript:showStatus();'>show/hide status information</a> | -->
       <a href='users.php'>manage user data</a> | 
       <a href='config.php'>configure autosampler</a> |
+	  <a href='protocols.php'>configure protocols</a> |
 	  <a href='nmr_standards.php'>configure internal standards</a> |
 	  <a href='methods.php'>configure processing methods</a> |
       <a href='resetShimming.php' target='debugFrame'>reset shimming</a>

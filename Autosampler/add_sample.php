@@ -5,6 +5,136 @@ include("Samples_SQL.php");
 include("params.php");
 include("globals.php");
 $pdo = new PDO('mysql:host=' . MYSQL_HOST . ';dbname=autosampler', MYSQL_UNAME, MYSQL_PASSWD);
+$sample = end($Samples);
+
+
+// Create new database entry for a new Sample.
+reset($Samples);
+if(isset($_POST['submit'])) {
+	$message = "";
+	$invalid = false;
+    if(isset($_POST['User'])) {
+		$User=intval($_POST['User']);
+    } else {
+        $invalid = true;
+        $message .= "Please select a user.";
+    }
+	// to catch the error in the qt browser where seconds are ignored if they are xx:xx:00
+    $StartDate = date_create_from_format("Y-m-d H:i", $_POST['StartDateDate'] . " " . $_POST['StartDateTime'])
+		or $StartDate = date_create_from_format("Y-m-d H:i:s", $_POST['StartDateDate'] . " " . $_POST['StartDateTime'])
+		or $StartDate = NULL;
+	if($StartDate !== NULL) {
+        $StartDate = $StartDate->getTimestamp();
+    }
+	$SampleType=$_POST['SampleType'];
+	if($SampleType == "Shimming") {
+		$SampleType = $_POST['ShimType'];
+		$Holder = strval($NumberOfHolders + 1);  // is 31 for 30 usable holders.
+		$Name = "";
+		$Solvent = "";
+		$Protocol = "";
+		$ProtocolID = NULL;
+		$Method = NULL;
+		$Standard = "";
+		$Eq = "";
+		$nF = "";
+	}
+	if($SampleType == "Sample") {
+		$Holder=$_POST['Holder'];
+		if($Holder > $ParamData['NumberOfHolders']) {
+			$invalid = true;
+			$message .= "<p>Sample could not be added (Holder $Holder does not exist).</p>";
+		}
+		$Name=trim($_POST['Name']);
+		if(strpos($Name, " ") !== false) {
+			$invalid = true;
+			$message .= "<p>Sample name must not contain whitespace.</p>";
+		}
+		// Check if the sample name already exists in the queue or the NMRFolder.
+		$SampleNames = scandir($NMRFolder);
+		foreach($Samples as $s) {
+			array_push($SampleNames, $s["Name"]);
+		}
+		if(in_array($Name, $SampleNames)) {
+			$invalid = true;
+			$message .= "<p>A sample with the name \"" . $Name . "\" already exists!</p>";
+		}
+        if(isset($_POST['Solvent'])) {
+            $Solvent = $_POST['Solvent'];
+        } else {
+            $invalid = true;
+            $message .= "<p>Please select a solvent.</p>";
+        }
+        if(isset($_POST['Protocol'])) {
+            $Protocol = $_POST['Protocol'];
+			// get properties
+			$found = false;
+			$SampleProperties = array();
+			foreach($Protocols as $thisProtocolID => $protocolname) {
+				// find the protocol which matches the data
+				if($Protocol === $protocolname) {
+					$found = true;
+					$ProtocolID = $thisProtocolID;
+					$props = $ProtocolProperties[$thisProtocolID];
+					foreach($props as $prop) {
+						if(isset($_POST["prop_" . $prop["xmlKey"]])) {
+							$SampleProperties[$prop["propid"]] = $_POST["prop_" . $prop["xmlKey"]];
+						} else {
+							$invalid = true;
+							$message .= "<p>The property " . $prop["xmlKey"] . " is not set.</p>";
+						}
+					}
+				}
+			}
+			if (!$found) {
+				$invalid = true;
+				$message .= "<p>Protocol not found in database.</p>";
+			}
+        } else {
+            $invalid = true;
+            $message .= "<p>Please select a protocol.</p>";
+        }
+        if($_POST['Method'] != '') {
+            $Method = $_POST['Method'];
+        } else {
+            $Method = NULL;
+        }
+		$Standard = "";
+		$Eq = "";
+		$nF = "";
+	}
+	if($invalid) {
+		$message .= "<p>The data was invalid. <a href='javascript:window.history.back();'>Back</a></p>";
+		$message .= "</body></html>";
+		die($message);
+	} else {
+		// add sample
+		$LastID=$_POST['LastID'];
+		$Date=time();
+		$NewSample = array($LastID, $Holder, $User, $Name, $Solvent, $ProtocolID, $Method, $Standard, $Eq, $nF, $Date, "Queued", $SampleType, $StartDate);
+		if ($sample and $LastID <= $sample['ID']) {
+			foreach(array_reverse($Samples) as $sample) {
+				if ($sample['ID'] >= $LastID) {
+					$newid = $sample['ID'] + 1;
+					$pdo->query("UPDATE samples SET `ID` = '" . $newid . "' WHERE `ID` = " . $sample['ID']);
+				}
+			}
+		}
+		$statement = $pdo->prepare("INSERT INTO samples (ID, Holder, User, Name, Solvent, Protocol, Method, Standard, Eq, nF, Date, Status, SampleType, StartDate) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+		$statement->execute($NewSample);
+		// add sample properties
+		$lastId = $pdo->lastInsertId();
+		foreach($SampleProperties as $propid => $data) {
+			$stmt = $pdo->prepare("INSERT INTO sample_properties (sampleid, propid, strvalue) VALUES (?,?,?)");
+			$stmt->execute([$lastId, $propid, $data]);
+		}
+		$message = "Sample $Name (#$LastID) has been added to the Queue. ";
+	}
+}
+
+// reload to ensure correct display of properties later
+include("Samples_SQL.php");
+$sample = end($Samples);
 
 ?>
 <!DOCTYPE html>
@@ -15,14 +145,76 @@ $pdo = new PDO('mysql:host=' . MYSQL_HOST . ';dbname=autosampler', MYSQL_UNAME, 
 <script type="text/javascript">
 var closeCountdown = 0;
 
+var protocols = 
+	<?php
+	echo json_encode($Protocols);
+	?>
+;
+var protocolsFlipped = {
+	<?php
+	$first = true;
+	foreach($Protocols as $protocolid => $protocolname) {
+		if(!$first) {
+			echo ", ";
+		}
+		echo "\"" . $protocolname . "\": \"" . $protocolid . "\"";
+		$first = false;
+	}
+	?>
+};
+var protocolNuclei = 
+	<?php
+	$protocolNucleiJson = json_encode($ProtocolNuclei);
+	if ($protocolNucleiJson === false) {
+		echo "{}";
+	} else {
+		echo $protocolNucleiJson;
+	}
+	?>
+;
+var protocolProperties = 
+	<?php
+	$ProtocolPropertiesJson = json_encode($ProtocolProperties);
+	if ($ProtocolPropertiesJson === false) {
+		echo "{}";
+	} else {
+		echo $ProtocolPropertiesJson;
+	}
+	?>
+;
+var lastSample = 
+	<?php
+	if ($sample) {
+		echo json_encode($sample);
+	} else {
+		echo "{}";
+	}
+	?>
+;
+var lastSampleProps = 
+	<?php
+	if ($sample) {
+		$stmt = $pdo->prepare("SELECT sample_properties.samplepropid, sample_properties.propid, protocol_properties.friendlyName, protocol_properties.xmlKey, sample_properties.strvalue FROM sample_properties INNER JOIN protocol_properties ON sample_properties.propid=protocol_properties.propid WHERE sample_properties.sampleid=?");
+		$stmt->execute([$sample["ID"]]);
+		$lastSampleProps = $stmt->fetchAll();
+		if(count($lastSampleProps) > 0) {
+			echo json_encode($lastSampleProps);
+		} else {
+			echo "{}";
+		}
+	} else {
+		echo "{}";
+	}
+	?>
+;
+
+
 function checkType() {
     var SampleType = document.getElementById("SampleType").value;
     
     var tr_Holder = document.getElementById("tr_Holder");
     var tr_Solvent = document.getElementById("tr_Solvent");
     var tr_Protocol = document.getElementById("tr_Protocol");
-    var tr_NoS = document.getElementById("tr_NoS");
-    var tr_RepTime = document.getElementById("tr_RepTime");
     var tr_Method = document.getElementById("tr_Method");
     var tr_ShimType = document.getElementById("tr_ShimType");
     var tr_StartDate = document.getElementById("tr_StartDate");
@@ -31,16 +223,13 @@ function checkType() {
     var Holder = document.getElementById("Holder");
     var Solvent = document.getElementById("Solvent");
     var Protocol = document.getElementById("Protocol");
-    var Number = document.getElementById("Number");
-    var RepetitionTime = document.getElementById("RepetitionTime");
     var Name = document.getElementById("Name");
     
     if(SampleType == "Sample") {
         tr_Holder.style.visibility = 'visible';
         tr_Solvent.style.visibility = 'visible';
         tr_Protocol.style.visibility = 'visible';
-        tr_NoS.style.visibility = 'visible';
-        tr_RepTime.style.visibility = 'visible';
+		tr_Properties.style.visibility = 'visible';
         tr_Method.style.visibility = 'visible';
         tr_StartDate.style.visibility = 'visible';
         tr_ShimType.style.visibility = 'hidden';
@@ -49,16 +238,13 @@ function checkType() {
         Holder.setAttribute("required", "required");
         Solvent.setAttribute("required", "required");
         Protocol.setAttribute("required", "required");
-        Number.setAttribute("required", "required");
-        RepetitionTime.setAttribute("required", "required");
         Name.setAttribute("required", "required");
     }
     if(SampleType == "Shimming") {
         tr_Holder.style.visibility = 'hidden';
         tr_Solvent.style.visibility = 'hidden';
         tr_Protocol.style.visibility = 'hidden';
-        tr_NoS.style.visibility = 'hidden';
-        tr_RepTime.style.visibility = 'hidden';
+		tr_Properties.style.visibility = 'hidden';
         tr_Method.style.visibility = 'hidden';
         tr_ShimType.style.visibility = 'visible';
         tr_StartDate.style.visibility = 'visible';
@@ -67,8 +253,6 @@ function checkType() {
         Holder.removeAttribute("required");
         Solvent.removeAttribute("required");
         Protocol.removeAttribute("required");
-        Number.removeAttribute("required");
-        RepetitionTime.removeAttribute("required");
         Name.removeAttribute("required");
     }
 }
@@ -77,6 +261,7 @@ function checkMethods() {
 	// only display methods of the user and protocol
 	var selected_user = document.getElementById("User").value;
     var selected_protocol = document.getElementById("Protocol").value;
+	var protocolid = protocolsFlipped[selected_protocol];
 	Array.from(document.getElementById("select_Method").options).forEach(function(option_method) {
         var display = false;
 		var method_user = option_method.getAttribute("data-user");
@@ -85,12 +270,7 @@ function checkMethods() {
             // ok user matches, OR method_user is 0 which is the "none" method
             // could in the future be expanded to user- or nucleus-independent methods... 
             // match "1D FLUORINE+" to 19, "1D PROTON+" to 1.
-            var selected_nucleus = 0;
-            if(selected_protocol == "1D FLUORINE+") {
-                selected_nucleus = 19;
-            } else if (selected_protocol == "1D PROTON+") {
-                selected_nucleus = 1;
-            }
+            var selected_nucleus = protocolNuclei[protocolid];
             if(method_nucleus === "0" || method_nucleus == selected_nucleus) {
                 // ok either the nucleus matches, or method_nucleus is 0 which is the "none" method
                 // so we can display, written with flag for more readable code
@@ -104,6 +284,72 @@ function checkMethods() {
             option_method.selected = false;
         }
 	});
+}
+
+function getLastSampleProp(key) {
+	for (let idx in lastSampleProps) {
+		if (lastSampleProps[idx]["xmlKey"] === key) {
+			return lastSampleProps[idx];
+		}
+	}
+	return null;
+}
+
+function checkProperties() {
+	var td_Properties = document.getElementById("td_Properties");
+	var selectedProtocol = document.getElementById("Protocol").value;
+	var protocolid = protocolsFlipped[selectedProtocol];
+	var props = protocolProperties[protocolid];
+	var table = document.createElement("table");
+	for (let propid in props) {
+		prop = props[propid];
+		// get preset from last sample
+		var preset = getLastSampleProp(prop["xmlKey"]);
+		// if not present, get from defaultValue
+		if (preset === null) {
+			preset = {"strvalue": prop["defaultValue"]};
+		}
+		let tr = document.createElement("tr");
+		table.appendChild(tr);
+		let td1 = document.createElement("td");
+		td1.innerHTML = prop["friendlyName"];
+		table.appendChild(td1);
+		let td2 = document.createElement("td");
+		if (prop["freeText"] == "0") {
+			let select = document.createElement("select");
+			select.setAttribute("id", "prop_" + prop["xmlKey"]);
+			select.setAttribute("name", "prop_" + prop["xmlKey"]);
+			var options = JSON.parse(prop["options"]);
+			options.forEach(function(value) {
+				let option = document.createElement("option");
+				option.setAttribute("value", value);
+				if (preset["strvalue"] === value.toString()) {
+					option.setAttribute("selected", "selected");
+				}
+				option.innerHTML = value;
+				select.appendChild(option);
+			});
+			td2.appendChild(select);
+		} else {
+			let inputElement = document.createElement("input");
+			inputElement.setAttribute("id", "prop_" + prop["xmlKey"]);
+			inputElement.setAttribute("name", "prop_" + prop["xmlKey"]);
+			if (preset !== null) {
+				inputElement.setAttribute("value", preset["strvalue"]);
+			}
+			inputElement.setAttribute("size", "10");
+			td2.appendChild(inputElement);
+		}
+		table.appendChild(td2);
+	}
+	// clear old table
+	while(td_Properties.firstChild) {
+		td_Properties.removeChild(td_Properties.firstChild);
+	}
+	// add new one
+	td_Properties.appendChild(table);
+	// adjust size of the iframe
+	adjustSize();
 }
 
 function adjustSize() {
@@ -139,106 +385,8 @@ select {
 }
 </style>
 </head>
-<body onload="checkType(); checkMethods(); adjustSize();" onmousemove="closeCountdown=0;">
+<body onload="checkType(); checkMethods(); checkProperties(); adjustSize();" onmousemove="closeCountdown=0;">
 <?php
-
-// Create new database entry for a new Sample.
-$sample = end($Samples);
-reset($Samples);
-if(isset($_POST['submit'])) {
-	$message = "";
-	$invalid = false;
-    if(isset($_POST['User'])) {
-		$User=intval($_POST['User']);
-    } else {
-        $invalid = true;
-        $message .= "Please select a user.";
-    }
-	// to catch the error in the qt browser where seconds are ignored if they are xx:xx:00
-    $StartDate = date_create_from_format("Y-m-d H:i", $_POST['StartDateDate'] . " " . $_POST['StartDateTime'])
-		or $StartDate = date_create_from_format("Y-m-d H:i:s", $_POST['StartDateDate'] . " " . $_POST['StartDateTime'])
-		or $StartDate = NULL;
-	if($StartDate !== NULL) {
-        $StartDate = $StartDate->getTimestamp();
-    }
-	$SampleType=$_POST['SampleType'];
-	if($SampleType == "Shimming") {
-		$SampleType = $_POST['ShimType'];
-		$Holder = strval($NumberOfHolders + 1);  // is 31 for 30 usable holders.
-		$Name = "";
-		$Solvent = "";
-		$Protocol = "";
-		$Number = "";
-		$RepTime = "";
-		$Method = NULL;
-		$Standard = "";
-		$Eq = "";
-		$nF = "";
-	}
-	if($SampleType == "Sample") {
-		$Holder=$_POST['Holder'];
-		if($Holder > $ParamData['NumberOfHolders']) {
-			$invalid = true;
-			$message .= "<p>Sample could not be added (Holder $Holder does not exist).</p>";
-		}
-		$Name=trim($_POST['Name']);
-		if(strpos($Name, " ") !== false) {
-			$invalid = true;
-			$message .= "<p>Sample name must not contain whitespace.</p>";
-		}
-		// Check if the sample name already exists in the queue or the NMRFolder.
-		$SampleNames = scandir($NMRFolder);
-		foreach($Samples as $s) {
-			array_push($SampleNames, $s["Name"]);
-		}
-		if(in_array($Name, $SampleNames)) {
-			$invalid = true;
-			$message .= "<p>A sample with the name \"" . $Name . "\" already exists!</p>";
-		}
-        if(isset($_POST['Solvent'])) {
-            $Solvent = $_POST['Solvent'];
-        } else {
-            $invalid = true;
-            $message .= "<p>Please select a solvent.</p>";
-        }
-        if(isset($_POST['Protocol'])) {
-            $Protocol = $_POST['Protocol'];
-        } else {
-            $invalid = true;
-            $message .= "<p>Please select a protocol.</p>";
-        }
-		$Number = $_POST['Number'];
-		$RepTime = $_POST['RepetitionTime'];
-        if($_POST['Method'] != '') {
-            $Method = $_POST['Method'];
-        } else {
-            $Method = NULL;
-        }
-		$Standard = "";
-		$Eq = "";
-		$nF = "";
-	}
-	if($invalid) {
-		$message .= "<p>The data was invalid. <a href='javascript:window.history.back();'>Back</a></p>";
-		$message .= "</body></html>";
-		die($message);
-	} else {
-		$LastID=$_POST['LastID'];
-		$Date=time();
-		$NewSample = array($LastID, $Holder, $User, $Name, $Solvent, $Protocol, $Number, $RepTime, $Method, $Standard, $Eq, $nF, $Date, "Queued", $SampleType, $StartDate);
-		if ($sample and $LastID <= $sample['ID']) {
-			foreach(array_reverse($Samples) as $sample) {
-				if ($sample['ID'] >= $LastID) {
-					$newid = $sample['ID'] + 1;
-					$pdo->query("UPDATE samples SET `ID` = '" . $newid . "' WHERE `ID` = " . $sample['ID']);
-				}
-			}
-		}
-		$statement = $pdo->prepare("INSERT INTO samples (ID, Holder, User, Name, Solvent, Protocol, Number, RepTime, Method, Standard, Eq, nF, Date, Status, SampleType, StartDate) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-		$statement->execute($NewSample);
-		$message = "Sample $Name (#$LastID) has been added to the Queue. ";
-	}
-}
 
 if(isset($_GET['ID'])) {
     $id = $_GET['ID'];
@@ -247,6 +395,7 @@ if(isset($_GET['ID'])) {
 } else {
     $id = -1;
 }
+echo "<form action='add_sample.php' method='post'>";
 echo "<table>";
 
 if(isset($message)) {
@@ -258,7 +407,6 @@ if(isset($message)) {
 // the sample list has to be refreshed here, or else the script will use the wrong template information.
 include("Samples_SQL.php");
 
-echo "<form action='add_sample.php' method='post'>";
 echo "<tr><th colspan='2'>";
 // this page should recieve an id of -1 if the sample should be added to the bottom.
 // We need the information on the sample, which should serve as template for our new sample.
@@ -382,16 +530,16 @@ echo "</tr>";
 echo "<tr id='tr_Protocol'>";
 echo "<td>Protocol</td>";
 echo "<td>";
-echo "<select id='Protocol' name='Protocol' required='required' onchange='checkMethods();'>";
+echo "<select id='Protocol' name='Protocol' required='required' onchange='checkMethods(); checkProperties();'>";
 echo "<option disabled='disabled'";
 if($sample==[]) {
     echo " selected='selected'";
 }
 echo ">Select a Protocol!</option>";
-foreach ($ParamData["Protocols"] as $Protocol) {
+foreach ($ParamData["Protocols"] as $ProtocolID => $Protocol) {
     echo "<option value='$Protocol'";
-    if ($sample!=[] and $Protocol == $sample['Protocol']) {
-        echo " selected='selected'";
+    if ($sample != [] and $ProtocolID == $sample['Protocol']) {
+		echo " selected='selected'";
     }
     echo ">$Protocol</option>";
 }
@@ -399,47 +547,10 @@ echo "</select>";
 echo "</td>";
 echo "</tr>";
 
-// Number of Scans
-echo "<tr id='tr_NoS'>";
-echo "<td>Number&nbsp;of&nbsp;Scans</td>";
-echo "<td>";
-echo "<select id='Number' name='Number' required='required'>";
-foreach($ParamData["NumberOfScans"] as $NoS) {
-    echo "<option value='$NoS'";
-    if($sample==[]):
-        if ($NoS == 16):
-            echo "selected='selected'";
-        endif;
-    else:
-        if ($NoS == $sample['Number']):
-            echo " selected='selected'";
-        endif;
-    endif;
-    echo ">$NoS</option>";
-}
-echo "</select>";
-echo "</td>";
-echo "</tr>";
-
-// RepetitionTime
-echo "<tr id='tr_RepTime'>";
-echo "<td>Repetition&nbsp;Time</td>";
-echo "<td>";
-echo "<select id='RepetitionTime' name='RepetitionTime' required='required'>";
-foreach($ParamData["RepetitionTime"] as $RepTime) {
-    echo "<option value='$RepTime'";
-    if($sample==[]) {
-        if($RepTime==10) {
-            echo " selected='selected'";
-        }
-    } else {
-        if($RepTime == $sample["RepTime"]) {
-            echo " selected='selected'";
-        }
-    }
-    echo ">$RepTime</option>";
-}
-echo "</select>";
+// Properties
+echo "<tr id='tr_Properties'>";
+echo "<td>Properties</td>";
+echo "<td id='td_Properties'>";
 echo "</td>";
 echo "</tr>";
 
@@ -563,8 +674,8 @@ echo "<input type='button' value='Close' onClick='closeFrame();' />";
 echo "</td>";
 echo "</tr>";
 
-echo "</form>";
 echo "</table>";
+echo "</form>";
 
 ?>
 </body>
