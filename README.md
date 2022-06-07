@@ -40,7 +40,7 @@ To change the available protocols, click on "configure protocols" on the bottom 
 
 The options available to you for each measurement ("properties") can then be configured by clicking on the link in the "Properties" column. Like the protocol, each property has an XML key, which you can find out from the AvailableProtocolRequest under <Option name="**XML KEY**">. In addition, a friendly name must be added which will then be displayed by the software. If there are only a limited number of options available, you must add them under "Options (JSON)" as a **[JSON array](https://www.w3schools.com/js/js_json_arrays.asp)** - take a look at the default protocols as an example on how this might be implemented. The available options are usually listed in the AvailableProtocolRequest, but this data might not always be correct! Make sure to cross-check the options with the ones which are presented to you in the Spinsolve software. On the other hand, if a free text value may be given to the Spinsolve software (e.g. center frequency), check the "Free text?" checkbox. In the "Default Value" column, you can then enter a default value.
 
-Make sure to test the new protocol. While the measurement is running in Spinsolve, make sure that the options are all correctly set on the left side of the Spinsolve interface.
+Make sure to test the new protocol by queuing a new sample and selecting your new protocol under "Protocol". While the measurement is running in Spinsolve, make sure that the options are all correctly set on the left side of the Spinsolve interface.
 
 ## Licence
 
