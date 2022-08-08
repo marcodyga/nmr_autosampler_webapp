@@ -39,6 +39,7 @@ if(isset($_POST['submit'])) {
 		$Eq = "";
 		$nF = "";
 	}
+	$SampleProperties = array();
 	if($SampleType == "Sample") {
 		$Holder=$_POST['Holder'];
 		if($Holder > $ParamData['NumberOfHolders']) {
@@ -69,7 +70,6 @@ if(isset($_POST['submit'])) {
             $Protocol = $_POST['Protocol'];
 			// get properties
 			$found = false;
-			$SampleProperties = array();
 			foreach($Protocols as $thisProtocolID => $protocolname) {
 				// find the protocol which matches the data
 				if($Protocol === $protocolname) {
